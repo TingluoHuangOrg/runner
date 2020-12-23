@@ -51,12 +51,17 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: runner-package-linux-arm
-      - name: Configure Runner
-        run: |
+      
+      - run: |
           ls -l
           tar -xzf *.tar.gz
           ls -l
-          ./config.sh --help
+          docker run --rm --privileged multiarch/qemu-user-static:register --reset
+
+      - uses: docker://multiarch/ubuntu-core:armhf-bionic
+        with:
+          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help"'
+
   ARM64E2E:
     needs: [build]
     runs-on: ubuntu-latest
@@ -65,12 +70,15 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: runner-package-linux-arm64
-      - name: Configure Runner
-        run: |
+      - run: |
           ls -l
           tar -xzf *.tar.gz
           ls -l
-          ./config.sh --help
+          docker run --rm --privileged multiarch/qemu-user-static:register --reset
+
+      - uses: docker://multiarch/ubuntu-core:arm64-bionic
+        with:
+          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help"'
   WindowsE2E:
     needs: [build]
     runs-on: windows-latest
