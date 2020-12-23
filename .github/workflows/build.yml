@@ -9,7 +9,7 @@ on:
 
 jobs:
   QueueWorkflow:
-    needs: [Initialize, LinuxE2E, macOSE2E, ARME2E, ARM64E2E, WindowsE2E]
+    needs: [Initialize]
     runs-on: ubuntu-latest
     steps:
     - name: GitHub Script
@@ -18,6 +18,33 @@ jobs:
         # The script to run
         debug: true
         script: |
+          var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
+              owner: 'TingluoHuangOrg',
+              repo: 'runner'
+            });
+          core.debug(JSON.stringify(runnersResp));
+          var runners = runnersResp.data.runners;
+          while(true){
+            await sleep(5000);
+            if(runnersResp.data.total_count>0){
+              console.log(`------------- waiting for runners ------------`)
+              var count = 0;
+              for(var i=0; i<runnersResp.data.total_count; i++){
+                console.log(`${runnersResp.data.runners[i]}`);
+                var labels = runnersResp.data.runners[i].labels;
+                for(var j = 0; j < labels.length; j++) {
+                 if (labels[i].Name == '${{needs.Initialize.outputs.unique_runner_label}}') {
+                     count = count+1;
+                     break;
+                 }
+              }
+              console.log(`--------------------------------------`)
+              if(count == 5){
+                console.log(`---------------------ALL-RUNNERS-ARE-ONLINE--------------------------`)
+                break;
+              }
+            }
+          }
           var workflow = await github.actions.createWorkflowDispatch({
               owner: 'TingluoHuangOrg',
               repo: 'runner',
@@ -30,8 +57,7 @@ jobs:
           core.debug(JSON.stringify(workflow))
         # The GitHub token used to create an authenticated client
         github-token: ${{secrets.REPO_PAT}}
-    - run: |
-        curl --version
+
   Initialize:
     runs-on: ubuntu-latest
     outputs:
