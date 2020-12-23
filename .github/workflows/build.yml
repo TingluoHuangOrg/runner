@@ -61,6 +61,8 @@ jobs:
       - uses: docker://multiarch/ubuntu-core:armhf-bionic
         with:
           args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help"'
+        env:
+          RUNNER_ALLOW_RUNASROOT: 1
 
   ARM64E2E:
     needs: [build]
@@ -79,6 +81,9 @@ jobs:
       - uses: docker://multiarch/ubuntu-core:arm64-bionic
         with:
           args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help"'
+        env:
+          RUNNER_ALLOW_RUNASROOT: 1
+
   WindowsE2E:
     needs: [build]
     runs-on: windows-latest
