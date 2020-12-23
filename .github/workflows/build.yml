@@ -18,6 +18,9 @@ jobs:
         # The script to run
         debug: true
         script: |
+         function sleep(ms) {
+           return new Promise(resolve => setTimeout(resolve, ms));
+         }
           var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
               owner: 'TingluoHuangOrg',
               repo: 'runner'
