@@ -86,7 +86,7 @@ jobs:
           tar -xzf *.tar.gz
           ls -l
           ./config.sh --help
-          ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
+          ./config.sh --url ${{github.event.repository.html_url}} --unattended --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
           ./run.sh --once
           ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
   macOSE2E:
@@ -103,7 +103,7 @@ jobs:
           tar -xzf *.tar.gz
           ls -l
           ./config.sh --help
-          ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels osx-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
+          ./config.sh --url ${{github.event.repository.html_url}} --unattended --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels osx-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
           ./run.sh --once
           ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
   ARME2E:
@@ -123,7 +123,7 @@ jobs:
 
       - uses: docker://multiarch/ubuntu-core:armhf-bionic
         with:
-          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm,${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
+          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm,${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
         env:
           RUNNER_ALLOW_RUNASROOT: 1
 
@@ -143,7 +143,7 @@ jobs:
 
       - uses: docker://multiarch/ubuntu-core:arm64-bionic
         with:
-          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm64,${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
+          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm64,${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
         env:
           RUNNER_ALLOW_RUNASROOT: 1
 
@@ -160,7 +160,7 @@ jobs:
           Get-ChildItem *.zip | Expand-Archive -DestinationPath $PWD
           dir
           ./config.cmd --help
-          ./config.cmd --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels win-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
+          ./config.cmd --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels win-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
           ./run.cmd --once
           ./config.cmd remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
      
