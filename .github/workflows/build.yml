@@ -33,7 +33,7 @@ jobs:
               console.log(`------------- waiting for runners ------------`)
               var count = 0;
               for(var i=0; i<runnersResp.data.total_count; i++){
-                console.log(`${runnersResp.data.runners[i]}`);
+                console.log(JSON.stringify(runnersResp.data.runners[i]));
                 var labels = runnersResp.data.runners[i].labels;
                 for(var j = 0; j < labels.length; j++) {
                   if(labels[j].Name == '${{needs.Initialize.outputs.unique_runner_label}}') {
