@@ -33,15 +33,16 @@ jobs:
                 console.log(`${runnersResp.data.runners[i]}`);
                 var labels = runnersResp.data.runners[i].labels;
                 for(var j = 0; j < labels.length; j++) {
-                 if (labels[i].Name == '${{needs.Initialize.outputs.unique_runner_label}}') {
-                     count = count+1;
-                     break;
-                 }
-              }
-              console.log(`--------------------------------------`)
-              if(count == 5){
-                console.log(`---------------------ALL-RUNNERS-ARE-ONLINE--------------------------`)
-                break;
+                  if(labels[i].Name == '${{needs.Initialize.outputs.unique_runner_label}}') {
+                    count = count+1;
+                    break;
+                  }
+                }
+                console.log(`--------------------------------------`)
+                if(count == 5){
+                  console.log(`---------------------ALL-RUNNERS-ARE-ONLINE--------------------------`)
+                  break;
+                }
               }
             }
           }
