@@ -40,7 +40,7 @@ jobs:
       - name: Generate Unique Runner label
         id: generator
         run: |
-          label=${echo $GITHUB_TOKEN | sha256sum | cut -f1 -d" "}
+          label=$(echo $GITHUB_TOKEN | sha256sum | cut -f1 -d" ")
           echo ::set-output name=runner_label::$label
   LinuxE2E:
     needs: [build, Initialize]
