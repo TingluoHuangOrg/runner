@@ -29,7 +29,7 @@ jobs:
             }); 
           core.debug(JSON.stringify(workflow))
         # The GitHub token used to create an authenticated client
-        github-token: ${{secret.REPO_PAT}}
+        github-token: ${{secrets.REPO_PAT}}
     - run: |
         curl --version
   Initialize:
