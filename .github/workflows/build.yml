@@ -1,4 +1,4 @@
-name: Runner CI
+name: Runner E2E
 
 on:
   workflow_dispatch:
@@ -6,17 +6,44 @@ on:
     branches:
     - main
     - releases/*
-    paths-ignore:
-    - '**.md'    
-  pull_request:
-    branches:
-    - '*'
-    paths-ignore:
-    - '**.md'    
 
 jobs:
+  QueueWorkflow:
+    needs: [Initialize, LinuxE2E, macOSE2E, ARME2E, ARM64E2E, WindowsE2E]
+    runs-on: ubuntu-latest
+    steps:
+    - name: GitHub Script
+      uses: actions/github-script@v3
+      with:
+        # The script to run
+        debug: true
+        script: |
+          var workflow = await github.actions.createWorkflowDispatch({
+              owner: 'TingluoHuangOrg',
+              repo: 'runner',
+              workflow_id: 'runner-basic-e2e-test-case.yml',
+              ref: 'main',
+              inputs: {
+                target_runners: '${{needs.Initialize.outputs.unique_runner_label}}'
+              }
+            }); 
+          core.debug(JSON.stringify(workflow))
+        # The GitHub token used to create an authenticated client
+        github-token: ${{secret.REPO_PAT}}
+    - run: |
+        curl --version
+  Initialize:
+    runs-on: ubuntu-latest
+    outputs:
+      unique_runner_label: ${{steps.generator.outputs.runner_label}}
+    steps:
+      - name: Generate Unique Runner label
+        id: generator
+        run: |
+          label=${echo $GITHUB_TOKEN | sha256sum | cut -f1 -d" "}
+          echo ::set-output name=runner_label::$label
   LinuxE2E:
-    needs: [build]
+    needs: [build, Initialize]
     runs-on: ubuntu-latest
     steps:
       - name: Download Runner
@@ -29,11 +56,11 @@ jobs:
           tar -xzf *.tar.gz
           ls -l
           ./config.sh --help
-          ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-x64 --replace
+          ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
           ./run.sh --once
           ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
   macOSE2E:
-    needs: [build]
+    needs: [build, Initialize]
     runs-on: macOS-latest
     steps:
       - name: Download Runner
@@ -46,11 +73,11 @@ jobs:
           tar -xzf *.tar.gz
           ls -l
           ./config.sh --help
-          ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels osx-x64 --replace
+          ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels osx-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
           ./run.sh --once
           ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
   ARME2E:
-    needs: [build]
+    needs: [build, Initialize]
     runs-on: ubuntu-latest
     steps:
       - name: Download Runner
@@ -66,12 +93,12 @@ jobs:
 
       - uses: docker://multiarch/ubuntu-core:armhf-bionic
         with:
-          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
+          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm,${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
         env:
           RUNNER_ALLOW_RUNASROOT: 1
 
   ARM64E2E:
-    needs: [build]
+    needs: [build, Initialize]
     runs-on: ubuntu-latest
     steps:
       - name: Download Runner
@@ -86,12 +113,12 @@ jobs:
 
       - uses: docker://multiarch/ubuntu-core:arm64-bionic
         with:
-          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm64 --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
+          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm64,${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
         env:
           RUNNER_ALLOW_RUNASROOT: 1
 
   WindowsE2E:
-    needs: [build]
+    needs: [build, Initialize]
     runs-on: windows-latest
     steps:
       - name: Download Runner
@@ -103,7 +130,7 @@ jobs:
           Get-ChildItem *.zip | Expand-Archive -DestinationPath $PWD
           dir
           ./config.cmd --help
-          ./config.cmd --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels win-x64 --replace
+          ./config.cmd --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels win-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
           ./run.cmd --once
           ./config.cmd remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
      
@@ -141,24 +168,15 @@ jobs:
       run: |
         ${{ matrix.devScript }} layout Release ${{ matrix.runtime }}
       working-directory: src
-
-    # Run tests
-    - name: L0
-      run: |
-        ${{ matrix.devScript }} test
-      working-directory: src
-      if: matrix.runtime != 'linux-arm64' && matrix.runtime != 'linux-arm'
-
+    
     # Create runner package tar.gz/zip
     - name: Package Release
-      if: github.event_name != 'pull_request'
       run: |
          ${{ matrix.devScript }} package Release ${{ matrix.runtime }}
       working-directory: src
 
     # Upload runner package tar.gz/zip as artifact
     - name: Publish Artifact
-      if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v1
       with:
         name: runner-package-${{ matrix.runtime }}
