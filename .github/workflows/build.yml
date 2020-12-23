@@ -15,7 +15,7 @@ on:
     - '**.md'    
 
 jobs:
-  windowsE2E:
+  LinuxE2E:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
@@ -29,6 +29,61 @@ jobs:
           tar -xzf *.tar.gz
           ls -l
           ./config.sh --help
+  macOSE2E:
+    needs: [build]
+    runs-on: macOS-latest
+    steps:
+      - name: Download Runner
+        uses: actions/download-artifact@v2
+        with:
+          name: runner-package-osx-x64
+      - name: Configure Runner
+        run: |
+          ls -l
+          tar -xzf *.tar.gz
+          ls -l
+          ./config.sh --help
+  ARME2E:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Runner
+        uses: actions/download-artifact@v2
+        with:
+          name: runner-package-linux-arm
+      - name: Configure Runner
+        run: |
+          ls -l
+          tar -xzf *.tar.gz
+          ls -l
+          ./config.sh --help
+  ARM64E2E:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Runner
+        uses: actions/download-artifact@v2
+        with:
+          name: runner-package-linux-arm64
+      - name: Configure Runner
+        run: |
+          ls -l
+          tar -xzf *.tar.gz
+          ls -l
+          ./config.sh --help
+  WindowsE2E:
+    needs: [build]
+    runs-on: windows-latest
+    steps:
+      - name: Download Runner
+        uses: actions/download-artifact@v2
+        with:
+          name: runner-package-win-x64
+      - name: Configure Runner
+        run: |
+          Get-ChildItem *.zip | Expand-Archive
+          dir
+          ./config.cmd --help
      
   build:
     strategy:
