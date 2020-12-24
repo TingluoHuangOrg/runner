@@ -35,9 +35,10 @@ jobs:
             if(runnersResp.data.total_count>0){
               console.log(`------------- waiting for runners ------------`)
               for(var i=0; i<runnersResp.data.total_count; i++){
+                console.log(JSON.stringify(runnersResp.data.runners[i]))
                 var labels = runnersResp.data.runners[i].labels;
                 for(var j = 0; j < labels.length; j++) {
-                  console.log(`Comparing: {labels[j].Name} to win-x64/linux-x64/osx-x64/linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}`)
+                  console.log(`Comparing: ${labels[j].Name} to win-x64/linux-x64/osx-x64/linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}`)
                   if(labels[j].Name == 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runWin64==false) {
                     console.log(`-------------------Queue Windows Run-------------------------`)
                     runWin64 = true;
