@@ -37,7 +37,8 @@ jobs:
               for(var i=0; i<runnersResp.data.total_count; i++){
                 var labels = runnersResp.data.runners[i].labels;
                 for(var j = 0; j < labels.length; j++) {
-                  if(labels[j].Name == 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}' && !runWin64) {
+                  if(labels[j].Name == 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runWin64==false) {
+                    console.log(`-------------------Queue Windows Run-------------------------`)
                     runWin64 = true;
                     var run = await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
@@ -51,7 +52,8 @@ jobs:
                     console.log(JSON.stringify(run));
                     break;
                   }
-                  if(labels[j].Name == 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}' && !runLinux64) {
+                  if(labels[j].Name == 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinux64==false) {
+                    console.log(`-------------------Queue Linux Run-------------------------`)
                     runLinux64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
@@ -64,7 +66,8 @@ jobs:
                     }); 
                     break;
                   }
-                  if(labels[j].Name == 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}' && !runOsx64) {
+                  if(labels[j].Name == 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runOsx64==false) {
+                    console.log(`-------------------Queue macOS Run-------------------------`)
                     runOsx64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
@@ -77,7 +80,8 @@ jobs:
                     }); 
                     break;
                   }
-                  if(labels[j].Name == 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}' && !runLinuxARM64) {
+                  if(labels[j].Name == 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinuxARM64==false) {
+                    console.log(`-------------------Queue Linux ARM64 Run-------------------------`)
                     runLinuxARM64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
@@ -91,7 +95,6 @@ jobs:
                     break;
                   }
                 }
-                console.log(`--------------------------------------`)
                 if(runWin64&&runLinux64&&runOsx64&&runLinuxARM64){
                   console.log(`---------------------ALL-RUNNERS-ARE-RUNNING-JOBS--------------------------`)
                   break;
