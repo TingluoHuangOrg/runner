@@ -42,7 +42,7 @@ jobs:
                     var run = await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
                       repo: 'runner',
-                      workflow_id: '.github/workflows/runner-basic-e2e-test-case.yml',
+                      workflow_id: '4457982',
                       ref: 'main',
                       inputs: {
                         target_runners: 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}'
@@ -56,7 +56,7 @@ jobs:
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
                       repo: 'runner',
-                      workflow_id: '.github/workflows/runner-basic-e2e-test-case.yml',
+                      workflow_id: '4457982',
                       ref: 'main',
                       inputs: {
                         target_runners: 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}'
@@ -69,7 +69,7 @@ jobs:
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
                       repo: 'runner',
-                      workflow_id: '.github/workflows/runner-basic-e2e-test-case.yml',
+                      workflow_id: '4457982',
                       ref: 'main',
                       inputs: {
                         target_runners: 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}'
@@ -82,7 +82,7 @@ jobs:
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
                       repo: 'runner',
-                      workflow_id: '.github/workflows/runner-basic-e2e-test-case.yml',
+                      workflow_id: '4457982',
                       ref: 'main',
                       inputs: {
                         target_runners: 'linux-arm-${{needs.Initialize.outputs.unique_runner_label}}'
