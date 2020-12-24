@@ -48,7 +48,7 @@ jobs:
                       workflow_id: '4457982',
                       ref: 'main',
                       inputs: {
-                        target_runners: 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}'
+                        target_runner: 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}'
                       }
                     });
                     console.log(JSON.stringify(run));
@@ -63,7 +63,7 @@ jobs:
                       workflow_id: '4457982',
                       ref: 'main',
                       inputs: {
-                        target_runners: 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}'
+                        target_runner: 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}'
                       }
                     }); 
                     break;
@@ -77,7 +77,7 @@ jobs:
                       workflow_id: '4457982',
                       ref: 'main',
                       inputs: {
-                        target_runners: 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}'
+                        target_runner: 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}'
                       }
                     }); 
                     break;
@@ -91,7 +91,7 @@ jobs:
                       workflow_id: '4457982',
                       ref: 'main',
                       inputs: {
-                        target_runners: 'linux-arm-${{needs.Initialize.outputs.unique_runner_label}}'
+                        target_runner: 'linux-arm-${{needs.Initialize.outputs.unique_runner_label}}'
                       }
                     }); 
                     break;
