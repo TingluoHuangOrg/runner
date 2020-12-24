@@ -29,7 +29,8 @@ jobs:
             await sleep(5000);
             var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
               owner: 'TingluoHuangOrg',
-              repo: 'runner'
+              repo: 'runner',
+              per_page: '100'
             });
             if(runnersResp.data.total_count>0){
               console.log(`------------- waiting for runners ------------`)
@@ -95,17 +96,17 @@ jobs:
                       workflow_id: '4457982',
                       ref: 'main',
                       inputs: {
-                        target_runner: 'linux-arm-${{needs.Initialize.outputs.unique_runner_label}}'
+                        target_runner: 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}'
                       }
                     }); 
                     break;
                   }
                 }
-                if(runWin64&&runLinux64&&runOsx64&&runLinuxARM64){
-                  console.log(`---------------------ALL-RUNNERS-ARE-RUNNING-JOBS--------------------------`)
-                  break;
-                }
               }
+            }
+            if(runWin64&&runLinux64&&runOsx64&&runLinuxARM64){
+              console.log(`---------------------ALL-RUNNERS-ARE-RUNNING-JOBS--------------------------`)
+              break;
             }
           }
 
