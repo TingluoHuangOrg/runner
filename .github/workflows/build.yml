@@ -116,7 +116,7 @@ jobs:
       - name: Generate Unique Runner label
         id: generator
         run: |
-          label=$(echo $GITHUB_TOKEN | sha256sum | cut -f1 -d" ")
+          label=$(cat /dev/urandom | tr -dc 'a-z0-9' | head -c 32)
           echo ::set-output name=runner_label::$label
   LinuxE2E:
     needs: [build, Initialize]
