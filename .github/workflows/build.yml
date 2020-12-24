@@ -31,10 +31,14 @@ jobs:
               owner: 'TingluoHuangOrg',
               repo: 'runner'
             });
-            var runners = runnersResp.data.runners;
             if(runnersResp.data.total_count>0){
               console.log(`------------- waiting for runners ------------`)
               for(var i=0; i<runnersResp.data.total_count; i++){
+                if(runnersResp.data.runners[i]==null){
+                  console.log(`Why this happen??? ${i}`);
+                  console.log(JSON.stringfy(runnersResp.data));
+                  continue;
+                }
                 console.log(JSON.stringify(runnersResp.data.runners[i]))
                 var labels = runnersResp.data.runners[i].labels;
                 for(var j = 0; j < labels.length; j++) {
