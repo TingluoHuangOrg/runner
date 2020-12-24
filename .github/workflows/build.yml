@@ -36,7 +36,7 @@ jobs:
               for(var i=0; i<runnersResp.data.total_count; i++){
                 if(runnersResp.data.runners[i]==null){
                   console.log(`Why this happen??? ${i}`);
-                  console.log(JSON.stringfy(runnersResp.data));
+                  console.log(JSON.stringify(runnersResp.data));
                   continue;
                 }
                 console.log(JSON.stringify(runnersResp.data.runners[i]))
