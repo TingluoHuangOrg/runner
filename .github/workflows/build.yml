@@ -18,47 +18,89 @@ jobs:
         # The script to run
         debug: true
         script: |
-         function sleep(ms) {
-           return new Promise(resolve => setTimeout(resolve, ms));
-         }
-          var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
+          function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+          }
+          var runWin64 = false;
+          var runLinux64 = false;
+          var runOsx64 = false;
+          var runLinuxARM64 = false;
+          while(true){
+            await sleep(5000);
+            var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
               owner: 'TingluoHuangOrg',
               repo: 'runner'
             });
-          core.debug(JSON.stringify(runnersResp));
-          var runners = runnersResp.data.runners;
-          while(true){
-            await sleep(5000);
+            core.debug(JSON.stringify(runnersResp));
+            var runners = runnersResp.data.runners;
             if(runnersResp.data.total_count>0){
               console.log(`------------- waiting for runners ------------`)
-              var count = 0;
               for(var i=0; i<runnersResp.data.total_count; i++){
                 console.log(JSON.stringify(runnersResp.data.runners[i]));
                 var labels = runnersResp.data.runners[i].labels;
                 for(var j = 0; j < labels.length; j++) {
-                  if(labels[j].Name == '${{needs.Initialize.outputs.unique_runner_label}}') {
-                    count = count+1;
+                  if(labels[j].Name == 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}' && !runWin64) {
+                    runWin64 = true;
+                    await github.actions.createWorkflowDispatch({
+                      owner: 'TingluoHuangOrg',
+                      repo: 'runner',
+                      workflow_id: 'runner-basic-e2e-test-case.yml',
+                      ref: 'main',
+                      inputs: {
+                        target_runners: 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}'
+                      }
+                    }); 
+                    break;
+                  }
+                  if(labels[j].Name == 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}' && !runWin64) {
+                    runLinux64 = true;
+                    await github.actions.createWorkflowDispatch({
+                      owner: 'TingluoHuangOrg',
+                      repo: 'runner',
+                      workflow_id: 'runner-basic-e2e-test-case.yml',
+                      ref: 'main',
+                      inputs: {
+                        target_runners: 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}'
+                      }
+                    }); 
+                    break;
+                  }
+                  if(labels[j].Name == 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}' && !runWin64) {
+                    runOsx64 = true;
+                    await github.actions.createWorkflowDispatch({
+                      owner: 'TingluoHuangOrg',
+                      repo: 'runner',
+                      workflow_id: 'runner-basic-e2e-test-case.yml',
+                      ref: 'main',
+                      inputs: {
+                        target_runners: 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}'
+                      }
+                    }); 
+                    break;
+                  }
+                  if(labels[j].Name == 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}' && !runWin64) {
+                    runLinuxARM64 = true;
+                    await github.actions.createWorkflowDispatch({
+                      owner: 'TingluoHuangOrg',
+                      repo: 'runner',
+                      workflow_id: 'runner-basic-e2e-test-case.yml',
+                      ref: 'main',
+                      inputs: {
+                        target_runners: 'linux-arm-${{needs.Initialize.outputs.unique_runner_label}}'
+                      }
+                    }); 
                     break;
                   }
                 }
                 console.log(`--------------------------------------`)
-                if(count == 5){
-                  console.log(`---------------------ALL-RUNNERS-ARE-ONLINE--------------------------`)
+                if(runWin64&&runLinux64&&runOsx64&&runLinuxARM64){
+                  console.log(`---------------------ALL-RUNNERS-ARE-RUNNING-JOBS--------------------------`)
                   break;
                 }
               }
             }
           }
-          var workflow = await github.actions.createWorkflowDispatch({
-              owner: 'TingluoHuangOrg',
-              repo: 'runner',
-              workflow_id: 'runner-basic-e2e-test-case.yml',
-              ref: 'main',
-              inputs: {
-                target_runners: '${{needs.Initialize.outputs.unique_runner_label}}'
-              }
-            }); 
-          core.debug(JSON.stringify(workflow))
+
         # The GitHub token used to create an authenticated client
         github-token: ${{secrets.REPO_PAT}}
 
@@ -86,7 +128,7 @@ jobs:
           tar -xzf *.tar.gz
           ls -l
           ./config.sh --help
-          ./config.sh --url ${{github.event.repository.html_url}} --unattended --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
+          ./config.sh --url ${{github.event.repository.html_url}} --unattended --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-x64-${{needs.Initialize.outputs.unique_runner_label}} --replace
           ./run.sh --once
           ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
   macOSE2E:
@@ -103,29 +145,9 @@ jobs:
           tar -xzf *.tar.gz
           ls -l
           ./config.sh --help
-          ./config.sh --url ${{github.event.repository.html_url}} --unattended --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels osx-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
+          ./config.sh --url ${{github.event.repository.html_url}} --unattended --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels osx-x64-${{needs.Initialize.outputs.unique_runner_label}} --replace
           ./run.sh --once
           ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
-  ARME2E:
-    needs: [build, Initialize]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Runner
-        uses: actions/download-artifact@v2
-        with:
-          name: runner-package-linux-arm
-      
-      - run: |
-          ls -l
-          tar -xzf *.tar.gz
-          ls -l
-          docker run --rm --privileged multiarch/qemu-user-static:register --reset
-
-      - uses: docker://multiarch/ubuntu-core:armhf-bionic
-        with:
-          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm,${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
-        env:
-          RUNNER_ALLOW_RUNASROOT: 1
 
   ARM64E2E:
     needs: [build, Initialize]
@@ -143,7 +165,7 @@ jobs:
 
       - uses: docker://multiarch/ubuntu-core:arm64-bionic
         with:
-          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm64,${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
+          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm64-${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
         env:
           RUNNER_ALLOW_RUNASROOT: 1
 
@@ -160,7 +182,7 @@ jobs:
           Get-ChildItem *.zip | Expand-Archive -DestinationPath $PWD
           dir
           ./config.cmd --help
-          ./config.cmd --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels win-x64,${{needs.Initialize.outputs.unique_runner_label}} --replace
+          ./config.cmd --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels win-x64-${{needs.Initialize.outputs.unique_runner_label}} --replace
           ./run.cmd --once
           ./config.cmd remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
      
