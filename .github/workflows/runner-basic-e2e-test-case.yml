@@ -3,19 +3,16 @@ name: runner-basics
 on:
   workflow_dispatch:
     inputs: 
-      target_runners:
+      target_runner:
         description: 'Self-hosted runner will run the job'
         required: true
 
 jobs:
   test:
     runs-on:
-    - ${{github.event.inputs.target_runners}}
-    - ${{matrix.runner}}
-    strategy:
-      matrix:
-        runner: [win-x64, linux-x64, osx-x64, linux-arm, linux-arm64]
-    name: runner-basics (${{ matrix.runner }})
+    - ${{github.event.inputs.target_runner}}
+
+    name: runner-basics
     steps:
     - uses: actions/checkout@v2
     - name: Run a one-line script
