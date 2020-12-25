@@ -8,108 +8,8 @@ on:
     - releases/*
 
 jobs:
-  QueueWorkflow:
-    needs: [init]
-    runs-on: ubuntu-latest
-    steps:
-    - name: GitHub Script
-      timeout-minutes: 15
-      uses: actions/github-script@v3
-      with:
-        # The script to run
-        debug: true
-        script: |
-          function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-          }
-          var runWin64 = false;
-          var runLinux64 = false;
-          var runOsx64 = false;
-          var runLinuxARM64 = false;
-          while(true){
-            core.info(`------------- Waiting for runners to be configured --------------`)
-            await sleep(10000);
-            var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
-              owner: 'TingluoHuangOrg',
-              repo: 'runner',
-              per_page: '100'
-            });
-            if(runnersResp.data.total_count>0){
-              for(var i=0; i<runnersResp.data.total_count; i++){
-                core.debug(JSON.stringify(runnersResp.data.runners[i]))
-                var labels = runnersResp.data.runners[i].labels;
-                for(var j = 0; j < labels.length; j++) {
-                  core.debug(`Comparing: ${labels[j].name} to win-x64/linux-x64/osx-x64/linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}`)
-                  if(labels[j].name == 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runWin64==false) {
-                    core.info(`------------------- Windows runner is configured, queue Windows Run -------------------------`)
-                    runWin64 = true;
-                    await github.actions.createWorkflowDispatch({
-                      owner: 'TingluoHuangOrg',
-                      repo: 'runner',
-                      workflow_id: 'runner-basic-e2e-test-case.yml',
-                      ref: 'main',
-                      inputs: {
-                        target_runner: 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}'
-                      }
-                    });
-                    break;
-                  }
-                  if(labels[j].name == 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinux64==false) {
-                    core.info(`------------------- Linux runner is configured, queue Linux Run -------------------------`)
-                    runLinux64 = true;
-                    await github.actions.createWorkflowDispatch({
-                      owner: 'TingluoHuangOrg',
-                      repo: 'runner',
-                      workflow_id: 'runner-basic-e2e-test-case.yml',
-                      ref: 'main',
-                      inputs: {
-                        target_runner: 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}'
-                      }
-                    }); 
-                    break;
-                  }
-                  if(labels[j].name == 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runOsx64==false) {
-                    core.info(`------------------- macOS runner is configured, queue macOS Run -------------------------`)
-                    runOsx64 = true;
-                    await github.actions.createWorkflowDispatch({
-                      owner: 'TingluoHuangOrg',
-                      repo: 'runner',
-                      workflow_id: 'runner-basic-e2e-test-case.yml',
-                      ref: 'main',
-                      inputs: {
-                        target_runner: 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}'
-                      }
-                    }); 
-                    break;
-                  }
-                  if(labels[j].name == 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinuxARM64==false) {
-                    core.info(`------------------- Linux ARM64 runner is configured, queue Linux ARM64 Run-------------------------`)
-                    runLinuxARM64 = true;
-                    await github.actions.createWorkflowDispatch({
-                      owner: 'TingluoHuangOrg',
-                      repo: 'runner',
-                      workflow_id: 'runner-basic-e2e-test-case.yml',
-                      ref: 'main',
-                      inputs: {
-                        target_runner: 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}'
-                      }
-                    }); 
-                    break;
-                  }
-                }
-              }
-            }
-            if(runWin64&&runLinux64&&runOsx64&&runLinuxARM64){
-              core.info(`--------------------- ALL runner are running jobs --------------------------`)
-              break;
-            }
-          }
-
-        # The GitHub token used to create an authenticated client
-        github-token: ${{secrets.REPO_PAT}}
-
   init:
-    name: Initialize workflow variables
+    name: Initialize workflow variables ☕
     runs-on: ubuntu-latest
     outputs:
       unique_runner_label: ${{steps.generator.outputs.runner_label}}
@@ -119,6 +19,128 @@ jobs:
         run: |
           label=$(openssl rand -hex 16)
           echo ::set-output name=runner_label::$label
+
+  build:
+    name: Build runner packages 🏗 📦
+    strategy:
+      matrix:
+        runtime: [ linux-x64, linux-arm64, linux-arm, win-x64, osx-x64 ]
+        include:
+        - runtime: linux-x64
+          os: ubuntu-latest
+          devScript: ./dev.sh
+
+        - runtime: linux-arm64
+          os: ubuntu-latest
+          devScript: ./dev.sh
+
+        - runtime: linux-arm
+          os: ubuntu-latest
+          devScript: ./dev.sh
+
+        - runtime: osx-x64
+          os: macOS-latest
+          devScript: ./dev.sh
+
+        - runtime: win-x64
+          os: windows-latest
+          devScript: ./dev
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v1
+
+    # Build runner layout
+    - name: Build & Layout Release
+      run: |
+        ${{ matrix.devScript }} layout Release ${{ matrix.runtime }}
+      working-directory: src
+    
+    # Create runner package tar.gz/zip
+    - name: Package Release
+      run: |
+         ${{ matrix.devScript }} package Release ${{ matrix.runtime }}
+      working-directory: src
+
+    # Upload runner package tar.gz/zip as artifact
+    - name: Publish Artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: runner-package-${{ matrix.runtime }}
+        path: _package
+
+  dispatch_workflow:
+    name: Dispatch workflow to runners 🚨
+    needs: [init]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Dispatch workflow
+      timeout-minutes: 15
+      uses: actions/github-script@v3
+      with:
+        # The script to run
+        debug: true
+        script: |
+          function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+          }
+          async function dispatchWorkflow(runner) {
+            await github.actions.createWorkflowDispatch({
+              owner: 'TingluoHuangOrg',
+              repo: 'runner',
+              workflow_id: 'runner-basic-e2e-test-case.yml',
+              ref: 'main',
+              inputs: {
+                target_runner: runner
+              }
+            });
+          }
+          var runWin64, runLinux64, runOsx64, runLinuxARM64 = false;
+          while (true) {
+            core.info(`------------- Waiting for runners to be configured --------------`)
+            await sleep(10000);
+            var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
+              owner: 'TingluoHuangOrg',
+              repo: 'runner',
+              per_page: '100'
+            });
+
+            for (var i = 0; i < runnersResp.data.total_count; i++) {
+              core.debug(JSON.stringify(runnersResp.data.runners[i]))
+              var labels = runnersResp.data.runners[i].labels;
+              for (var j = 0; j < labels.length; j++) {
+                core.debug(`Comparing: ${labels[j].name} to win-x64/linux-x64/osx-x64/linux-arm64-${{ needs.Initialize.outputs.unique_runner_label }}`)
+                if (labels[j].name == 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runWin64 == false) {
+                  core.info(`------------------- Windows runner is configured, queue Windows Run -------------------------`)
+                  runWin64 = true;
+                  await dispatchWorkflow('win-x64-${{needs.Initialize.outputs.unique_runner_label}}');
+                  break;
+                } else if (labels[j].name == 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinux64 == false) {
+                  core.info(`------------------- Linux runner is configured, queue Linux Run -------------------------`)
+                  runLinux64 = true;
+                  await dispatchWorkflow('linux-x64-${{needs.Initialize.outputs.unique_runner_label}}');
+                  break;
+                } else if (labels[j].name == 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runOsx64 == false) {
+                  core.info(`------------------- macOS runner is configured, queue macOS Run -------------------------`)
+                  runOsx64 = true;
+                  await dispatchWorkflow('osx-x64-${{needs.Initialize.outputs.unique_runner_label}}');
+                  break;
+                } else if (labels[j].name == 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinuxARM64 == false) {
+                  core.info(`------------------- Linux ARM64 runner is configured, queue Linux ARM64 Run-------------------------`)
+                  runLinuxARM64 = true;
+                  await dispatchWorkflow('linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}');
+                  break;
+                }
+              }
+            }
+            if (runWin64 && runLinux64 && runOsx64 && runLinuxARM64) {
+              core.info(`--------------------- ALL runner are running jobs --------------------------`)
+              break;
+            }
+          }
+        # The GitHub token used to create an authenticated client
+        github-token: ${{secrets.REPO_PAT}}
+
   LinuxE2E:
     needs: [build, init]
     runs-on: ubuntu-latest
@@ -196,7 +218,6 @@ jobs:
       - name: Prepare QEMU
         run: |
           docker run --rm --privileged multiarch/qemu-user-static:register --reset
-
       - name: Configure Runner
         uses: docker://multiarch/ubuntu-core:arm64-bionic
         with:
@@ -252,14 +273,12 @@ jobs:
         timeout-minutes: 5
         run: |
           run.cmd --once
-
       - name: Remove Runner
         shell: cmd
         if: always()
         continue-on-error: true
         run: |
           config.cmd remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
-
       - name: Upload Runner Logs
         if: always()
         uses: actions/upload-artifact@v2
@@ -268,25 +287,26 @@ jobs:
           path: _diag
   
   check:
+    name: Check runner logs 🕵️‍♂️
     needs: [WindowsE2E, LinuxE2E, macOSE2E, ARM64E2E]
     runs-on: ubuntu-latest
     steps:
-    - name: Download Runner Logs
+    - name: Download Linux Runner Logs
       uses: actions/download-artifact@v2
       with:
         name: linux_x64_logs
         path: linux_x64_logs
-    - name: Download Runner Logs
+    - name: Download macOS Runner Logs
       uses: actions/download-artifact@v2
       with:
         name: osx_x64_logs
         path: osx_x64_logs
-    - name: Download Runner Logs
+    - name: Download Linux ARM64 Runner Logs
       uses: actions/download-artifact@v2
       with:
         name: linux_arm64_logs
         path: linux_arm64_logs
-    - name: Download Runner Logs
+    - name: Download Windows Runner Logs
       uses: actions/download-artifact@v2
       with:
         name: win_x64_logs
@@ -303,51 +323,4 @@ jobs:
         grep -R "Job runner-basics completed with result: Succeeded" ./linux_x64_logs || failed "Linux Runner fail to run the job, please check logs"
         grep -R "Job runner-basics completed with result: Succeeded" ./osx_x64_logs || failed "macOS Runner fail to run the job, please check logs"
         grep -R "Job runner-basics completed with result: Succeeded" ./linux_arm64_logs || failed "Linux ARM64 Runner fail to run the job, please check logs"
-      
-  build:
-    strategy:
-      matrix:
-        runtime: [ linux-x64, linux-arm64, linux-arm, win-x64, osx-x64 ]
-        include:
-        - runtime: linux-x64
-          os: ubuntu-latest
-          devScript: ./dev.sh
 
-        - runtime: linux-arm64
-          os: ubuntu-latest
-          devScript: ./dev.sh
-
-        - runtime: linux-arm
-          os: ubuntu-latest
-          devScript: ./dev.sh
-
-        - runtime: osx-x64
-          os: macOS-latest
-          devScript: ./dev.sh
-
-        - runtime: win-x64
-          os: windows-latest
-          devScript: ./dev
-
-    runs-on: ${{ matrix.os }}
-    steps:
-    - uses: actions/checkout@v1
-
-    # Build runner layout
-    - name: Build & Layout Release
-      run: |
-        ${{ matrix.devScript }} layout Release ${{ matrix.runtime }}
-      working-directory: src
-    
-    # Create runner package tar.gz/zip
-    - name: Package Release
-      run: |
-         ${{ matrix.devScript }} package Release ${{ matrix.runtime }}
-      working-directory: src
-
-    # Upload runner package tar.gz/zip as artifact
-    - name: Publish Artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: runner-package-${{ matrix.runtime }}
-        path: _package
