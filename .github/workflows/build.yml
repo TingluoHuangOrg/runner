@@ -293,10 +293,16 @@ jobs:
         path: win_x64_logs
     - name: Check Runner Logs
       run: |
-        grep -R "Job runner-basics completed with result: Succeeded" ./win_x64_logs || echo Windows Runner fail to run the job, please check logs >&2
-        grep -R "Job runner-basics completed with result: Succeeded" ./linux_x64_logs || echo Linux Runner fail to run the job, please check logs >&2
-        grep -R "Job runner-basics completed with result: Succeeded" ./osx_x64_logs || echo macOS Runner fail to run the job, please check logs >&2
-        grep -R "Job runner-basics completed with result: Succeeded" ./linux_arm64_logs || echo Linux ARM64 Runner fail to run the job, please check logs >&2
+        function failed()
+        {
+            local error=${1:-Undefined error}
+            echo "Failed: $error" >&2
+            exit 1
+        }
+        grep -R "Job runner-basics completed with result: Succeeded" ./win_x64_logs || failed "Windows Runner fail to run the job, please check logs"
+        grep -R "Job runner-basics completed with result: Succeeded" ./linux_x64_logs || failed "Linux Runner fail to run the job, please check logs"
+        grep -R "Job runner-basics completed with result: Succeeded" ./osx_x64_logs || failed "macOS Runner fail to run the job, please check logs"
+        grep -R "Job runner-basics completed with result: Succeededd" ./linux_arm64_logs || failed "Linux ARM64 Runner fail to run the job, please check logs"
       
   build:
     strategy:
