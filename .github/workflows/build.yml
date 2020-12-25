@@ -27,46 +27,40 @@ jobs:
           var runOsx64 = false;
           var runLinuxARM64 = false;
           while(true){
-            await sleep(5000);
+            core.output(`------------- Waiting for runners to be configured --------------`)
+            await sleep(10000);
             var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
               owner: 'TingluoHuangOrg',
               repo: 'runner',
               per_page: '100'
             });
             if(runnersResp.data.total_count>0){
-              console.log(`------------- waiting for runners ------------`)
               for(var i=0; i<runnersResp.data.total_count; i++){
-                if(runnersResp.data.runners[i]==null){
-                  console.log(`Why this happen??? ${i}`);
-                  console.log(JSON.stringify(runnersResp.data));
-                  continue;
-                }
-                console.log(JSON.stringify(runnersResp.data.runners[i]))
+                core.debug(JSON.stringify(runnersResp.data.runners[i]))
                 var labels = runnersResp.data.runners[i].labels;
                 for(var j = 0; j < labels.length; j++) {
-                  console.log(`Comparing: ${labels[j].name} to win-x64/linux-x64/osx-x64/linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}`)
+                  core.debug(`Comparing: ${labels[j].name} to win-x64/linux-x64/osx-x64/linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}`)
                   if(labels[j].name == 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runWin64==false) {
-                    console.log(`-------------------Queue Windows Run-------------------------`)
+                    core.output(`------------------- Windows runner is configured, queue Windows Run -------------------------`)
                     runWin64 = true;
-                    var run = await github.actions.createWorkflowDispatch({
+                    await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
                       repo: 'runner',
-                      workflow_id: '4457982',
+                      workflow_id: 'runner-basic-e2e-test-case.yml',
                       ref: 'main',
                       inputs: {
                         target_runner: 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}'
                       }
                     });
-                    console.log(JSON.stringify(run));
                     break;
                   }
                   if(labels[j].name == 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinux64==false) {
-                    console.log(`-------------------Queue Linux Run-------------------------`)
+                    core.output(`------------------- Linux runner is configured, queue Linux Run -------------------------`)
                     runLinux64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
                       repo: 'runner',
-                      workflow_id: '4457982',
+                      workflow_id: 'runner-basic-e2e-test-case.yml',
                       ref: 'main',
                       inputs: {
                         target_runner: 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}'
@@ -75,12 +69,12 @@ jobs:
                     break;
                   }
                   if(labels[j].name == 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runOsx64==false) {
-                    console.log(`-------------------Queue macOS Run-------------------------`)
+                    core.output(`------------------- macOS runner is configured, queue macOS Run -------------------------`)
                     runOsx64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
                       repo: 'runner',
-                      workflow_id: '4457982',
+                      workflow_id: 'runner-basic-e2e-test-case.yml',
                       ref: 'main',
                       inputs: {
                         target_runner: 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}'
@@ -89,12 +83,12 @@ jobs:
                     break;
                   }
                   if(labels[j].name == 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinuxARM64==false) {
-                    console.log(`-------------------Queue Linux ARM64 Run-------------------------`)
+                    core.output(`------------------- Linux ARM64 runner is configured, queue Linux ARM64 Run-------------------------`)
                     runLinuxARM64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
                       repo: 'runner',
-                      workflow_id: '4457982',
+                      workflow_id: 'runner-basic-e2e-test-case.yml',
                       ref: 'main',
                       inputs: {
                         target_runner: 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}'
@@ -106,7 +100,7 @@ jobs:
               }
             }
             if(runWin64&&runLinux64&&runOsx64&&runLinuxARM64){
-              console.log(`---------------------ALL-RUNNERS-ARE-RUNNING-JOBS--------------------------`)
+              core.output(`--------------------- ALL runner are running jobs --------------------------`)
               break;
             }
           }
