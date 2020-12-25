@@ -297,6 +297,12 @@ jobs:
       with:
         name: win_x64_logs
         path: win_x64_logs
+    - name: Check Runner Logs
+      run: |
+        grep -R "Job runner-basics completed with result: Succeeded" ./win_x64_logs || echo Windows Runner fail to run the job, please check logs >&2
+        grep -R "Job runner-basics completed with result: Succeeded" ./linux_x64_logs || echo Linux Runner fail to run the job, please check logs >&2
+        grep -R "Job runner-basics completed with result: Succeeded" ./osx_x64_logs || echo macOS Runner fail to run the job, please check logs >&2
+        grep -R "Job runner-basics completed with result: Succeeded" ./linux_arm64_logs || echo Linux ARM64 Runner fail to run the job, please check logs >&2
       
   build:
     strategy:
