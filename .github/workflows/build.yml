@@ -9,7 +9,7 @@ on:
 
 jobs:
   QueueWorkflow:
-    needs: [Initialize]
+    needs: [init]
     runs-on: ubuntu-latest
     steps:
     - name: GitHub Script
@@ -113,7 +113,8 @@ jobs:
         # The GitHub token used to create an authenticated client
         github-token: ${{secrets.REPO_PAT}}
 
-  Initialize:
+  init:
+    name: Initialize workflow variables
     runs-on: ubuntu-latest
     outputs:
       unique_runner_label: ${{steps.generator.outputs.runner_label}}
@@ -124,77 +125,178 @@ jobs:
           label=$(openssl rand -hex 16)
           echo ::set-output name=runner_label::$label
   LinuxE2E:
-    needs: [build, Initialize]
+    needs: [build, init]
     runs-on: ubuntu-latest
     steps:
       - name: Download Runner
         uses: actions/download-artifact@v2
         with:
           name: runner-package-linux-x64
-      - name: Configure Runner
+      - name: Unzip Runner Package
         run: |
-          ls -l
           tar -xzf *.tar.gz
-          ls -l
-          ./config.sh --help
-          ./config.sh --url ${{github.event.repository.html_url}} --unattended --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-x64-${{needs.Initialize.outputs.unique_runner_label}} --replace
+      - name: Configure Runner
+        env:
+          unique_runner_name: linux-x64-${{needs.Initialize.outputs.unique_runner_label}}
+        run: |
+          ./config.sh --url ${{github.event.repository.html_url}} --unattended --name $unique_runner_name --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels $unique_runner_name --replace
+      - name: Start Runner and Wait for Job
+        timeout-minutes: 5
+        run: |
           ./run.sh --once
+      - name: Remove Runner
+        if: always()
+        continue-on-error: true
+        run: |
           ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
+      - name: Upload Runner Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux_x64_logs
+          path: _diag
   macOSE2E:
-    needs: [build, Initialize]
+    needs: [build, init]
     runs-on: macOS-latest
     steps:
       - name: Download Runner
         uses: actions/download-artifact@v2
         with:
           name: runner-package-osx-x64
-      - name: Configure Runner
+      - name: Unzip Runner Package
         run: |
-          ls -l
           tar -xzf *.tar.gz
-          ls -l
-          ./config.sh --help
-          ./config.sh --url ${{github.event.repository.html_url}} --unattended --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels osx-x64-${{needs.Initialize.outputs.unique_runner_label}} --replace
+      - name: Configure Runner
+        env:
+          unique_runner_name: osx-x64-${{needs.Initialize.outputs.unique_runner_label}}
+        run: |
+          ./config.sh --url ${{github.event.repository.html_url}} --unattended --name $unique_runner_name --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels $unique_runner_name --replace
+      - name: Start Runner and Wait for Job
+        timeout-minutes: 5
+        run: |
           ./run.sh --once
+      - name: Remove Runner
+        if: always()
+        continue-on-error: true
+        run: |
           ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
+      - name: Upload Runner Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: osx_x64_logs
+          path: _diag
 
   ARM64E2E:
-    needs: [build, Initialize]
+    needs: [build, init]
     runs-on: ubuntu-latest
     steps:
       - name: Download Runner
         uses: actions/download-artifact@v2
         with:
           name: runner-package-linux-arm64
-      - run: |
-          ls -l
+      - name: Unzip Runner Package
+        run: |
           tar -xzf *.tar.gz
-          ls -l
+      - name: Prepare QEMU
+        run: |
           docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
-      - uses: docker://multiarch/ubuntu-core:arm64-bionic
+      - name: Configure Runner
+        uses: docker://multiarch/ubuntu-core:arm64-bionic
         with:
-          args: 'bash -c "apt-get update && apt-get install -y coreutils curl git && ./bin/installdependencies.sh && ./config.sh --help && ./config.sh --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels linux-arm64-${{needs.Initialize.outputs.unique_runner_label}} --replace && ./run.sh --once && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
+          args: 'bash -c "./bin/installdependencies.sh && ./config.sh --unattended --name $unique_runner_name --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels $unique_runner_name  --replace"'
+        env:
+          RUNNER_ALLOW_RUNASROOT: 1
+          unique_runner_name: linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}
+
+      - name: Start Runner and Wait for Job
+        timeout-minutes: 5
+        uses: docker://multiarch/ubuntu-core:arm64-bionic
+        with:
+          args: 'bash -c "./bin/installdependencies.sh && ./run.sh --once"'
         env:
           RUNNER_ALLOW_RUNASROOT: 1
 
+      - name: Remove Runner
+        if: always()
+        continue-on-error: true
+        uses: docker://multiarch/ubuntu-core:arm64-bionic
+        with:
+          args: 'bash -c "./bin/installdependencies.sh && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
+        env:
+          RUNNER_ALLOW_RUNASROOT: 1
+
+      - name: Upload Runner Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux_arm64_logs
+          path: _diag
+
   WindowsE2E:
-    needs: [build, Initialize]
+    needs: [build, init]
     runs-on: windows-latest
     steps:
       - name: Download Runner
         uses: actions/download-artifact@v2
         with:
           name: runner-package-win-x64
-      - name: Configure Runner
+      - name: Unzip Runner Package
         run: |
           Get-ChildItem *.zip | Expand-Archive -DestinationPath $PWD
-          dir
-          ./config.cmd --help
-          ./config.cmd --unattended --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels win-x64-${{needs.Initialize.outputs.unique_runner_label}} --replace
-          ./run.cmd --once
-          ./config.cmd remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
-     
+      - name: Configure Runner
+        shell: cmd
+        run: |
+          config.cmd --unattended --url ${{github.event.repository.html_url}} --name %unique_runner_name% --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels %unique_runner_name% --replace
+        env:
+          unique_runner_name: win-x64-${{needs.Initialize.outputs.unique_runner_label}}
+
+      - name: Start Runner and Wait for Job
+        shell: cmd
+        timeout-minutes: 5
+        run: |
+          run.cmd --once
+
+      - name: Remove Runner
+        shell: cmd
+        if: always()
+        continue-on-error: true
+        run: |
+          config.cmd remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}
+
+      - name: Upload Runner Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: win_x64_logs
+          path: _diag
+  
+  check:
+    needs: [WindowsE2E, LinuxE2E, macOSE2E, ARM64E2E]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Runner Logs
+      uses: actions/download-artifact@v2
+      with:
+        name: linux_x64_logs
+        path: linux_x64_logs
+    - name: Download Runner Logs
+      uses: actions/download-artifact@v2
+      with:
+        name: osx_x64_logs
+        path: osx_x64_logs
+    - name: Download Runner Logs
+      uses: actions/download-artifact@v2
+      with:
+        name: linux_arm64_logs
+        path: linux_arm64_logs
+    - name: Download Runner Logs
+      uses: actions/download-artifact@v2
+      with:
+        name: win_x64_logs
+        path: win_x64_logs
+      
   build:
     strategy:
       matrix:
