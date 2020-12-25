@@ -33,8 +33,7 @@ jobs:
               runner_id: runnersResp.data.runners[i].id
             });
           }
-        # The GitHub token used to create an authenticated client
-        github-token: ${{secrets.bbqbeetstoken}}
+        github-token: ${{secrets.REPO_PAT}}
     - name: Generate Unique Runner label
       id: generator
       run: |
