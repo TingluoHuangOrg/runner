@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: GitHub Script
+      timeout-minutes: 15
       uses: actions/github-script@v3
       with:
         # The script to run
@@ -205,7 +206,7 @@ jobs:
       - name: Configure Runner
         uses: docker://multiarch/ubuntu-core:arm64-bionic
         with:
-          args: 'bash -c "./bin/installdependencies.sh && ./config.sh --unattended --name $unique_runner_name --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels $unique_runner_name  --replace"'
+          args: 'bash -c "apt-get update && apt-get install -y curl && ./bin/installdependencies.sh && ./config.sh --unattended --name $unique_runner_name --url ${{github.event.repository.html_url}} --token ${{secrets.RUNNER_REGISTER_TOKEN}} --labels $unique_runner_name  --replace"'
         env:
           RUNNER_ALLOW_RUNASROOT: 1
           unique_runner_name: linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}
@@ -214,7 +215,7 @@ jobs:
         timeout-minutes: 5
         uses: docker://multiarch/ubuntu-core:arm64-bionic
         with:
-          args: 'bash -c "./bin/installdependencies.sh && ./run.sh --once"'
+          args: 'bash -c "apt-get update && apt-get install -y curl git && ./bin/installdependencies.sh && ./run.sh --once"'
         env:
           RUNNER_ALLOW_RUNASROOT: 1
 
@@ -223,7 +224,7 @@ jobs:
         continue-on-error: true
         uses: docker://multiarch/ubuntu-core:arm64-bionic
         with:
-          args: 'bash -c "./bin/installdependencies.sh && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
+          args: 'bash -c "apt-get update && apt-get install -y curl && ./bin/installdependencies.sh && ./config.sh remove --token ${{secrets.RUNNER_REGISTER_TOKEN}}"'
         env:
           RUNNER_ALLOW_RUNASROOT: 1
 
