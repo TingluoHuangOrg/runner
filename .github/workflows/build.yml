@@ -91,11 +91,11 @@ jobs:
 
   dispatch_workflow:
     name: Dispatch workflow to runners 🚨
-    needs: [init]
+    needs: [init, build]
     runs-on: ubuntu-latest
     steps:
     - name: Dispatch workflow
-      timeout-minutes: 15
+      timeout-minutes: 10
       uses: actions/github-script@v3
       with:
         # The script to run
