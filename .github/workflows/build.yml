@@ -27,7 +27,7 @@ jobs:
           var runOsx64 = false;
           var runLinuxARM64 = false;
           while(true){
-            core.output(`------------- Waiting for runners to be configured --------------`)
+            core.info(`------------- Waiting for runners to be configured --------------`)
             await sleep(10000);
             var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
               owner: 'TingluoHuangOrg',
@@ -41,7 +41,7 @@ jobs:
                 for(var j = 0; j < labels.length; j++) {
                   core.debug(`Comparing: ${labels[j].name} to win-x64/linux-x64/osx-x64/linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}`)
                   if(labels[j].name == 'win-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runWin64==false) {
-                    core.output(`------------------- Windows runner is configured, queue Windows Run -------------------------`)
+                    core.info(`------------------- Windows runner is configured, queue Windows Run -------------------------`)
                     runWin64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
@@ -55,7 +55,7 @@ jobs:
                     break;
                   }
                   if(labels[j].name == 'linux-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinux64==false) {
-                    core.output(`------------------- Linux runner is configured, queue Linux Run -------------------------`)
+                    core.info(`------------------- Linux runner is configured, queue Linux Run -------------------------`)
                     runLinux64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
@@ -69,7 +69,7 @@ jobs:
                     break;
                   }
                   if(labels[j].name == 'osx-x64-${{needs.Initialize.outputs.unique_runner_label}}' && runOsx64==false) {
-                    core.output(`------------------- macOS runner is configured, queue macOS Run -------------------------`)
+                    core.info(`------------------- macOS runner is configured, queue macOS Run -------------------------`)
                     runOsx64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
@@ -83,7 +83,7 @@ jobs:
                     break;
                   }
                   if(labels[j].name == 'linux-arm64-${{needs.Initialize.outputs.unique_runner_label}}' && runLinuxARM64==false) {
-                    core.output(`------------------- Linux ARM64 runner is configured, queue Linux ARM64 Run-------------------------`)
+                    core.info(`------------------- Linux ARM64 runner is configured, queue Linux ARM64 Run-------------------------`)
                     runLinuxARM64 = true;
                     await github.actions.createWorkflowDispatch({
                       owner: 'TingluoHuangOrg',
@@ -100,7 +100,7 @@ jobs:
               }
             }
             if(runWin64&&runLinux64&&runOsx64&&runLinuxARM64){
-              core.output(`--------------------- ALL runner are running jobs --------------------------`)
+              core.info(`--------------------- ALL runner are running jobs --------------------------`)
               break;
             }
           }
