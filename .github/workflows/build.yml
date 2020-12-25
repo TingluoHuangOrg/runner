@@ -9,16 +9,37 @@ on:
 
 jobs:
   init:
-    name: Initialize workflow variables ☕
+    name: Initialize workflow ☕
     runs-on: ubuntu-latest
     outputs:
       unique_runner_label: ${{steps.generator.outputs.runner_label}}
     steps:
-      - name: Generate Unique Runner label
-        id: generator
-        run: |
-          label=$(openssl rand -hex 16)
-          echo ::set-output name=runner_label::$label
+    - name: Delete all runners
+      uses: actions/github-script@v3
+      with:
+        # The script to run
+        debug: true
+        script: |
+          var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
+              owner: 'TingluoHuangOrg',
+              repo: 'runner',
+              per_page: '100'
+          });
+          for(var i=0; i<runnersResp.data.total_count; i++){
+            core.debug(JSON.stringify(runnersResp.data.runners[i]))
+            await github.actions.deleteSelfHostedRunnerFromRepo({
+              owner: 'TingluoHuangOrg',
+              repo: 'runner',
+              runner_id: runnersResp.data.runners[i].id
+            });
+          }
+        # The GitHub token used to create an authenticated client
+        github-token: ${{secrets.bbqbeetstoken}}
+    - name: Generate Unique Runner label
+      id: generator
+      run: |
+        label=$(openssl rand -hex 16)
+        echo ::set-output name=runner_label::$label
 
   build:
     name: Build runner packages 🏗 📦
@@ -81,30 +102,21 @@ jobs:
         # The script to run
         debug: true
         script: |
-          function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-          }
+          function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
           async function dispatchWorkflow(runner) {
             await github.actions.createWorkflowDispatch({
               owner: 'TingluoHuangOrg',
               repo: 'runner',
               workflow_id: 'runner-basic-e2e-test-case.yml',
               ref: 'main',
-              inputs: {
-                target_runner: runner
-              }
+              inputs: {target_runner: runner}
             });
           }
-          var runWin64, runLinux64, runOsx64, runLinuxARM64 = false;
+          var runWin64 = false, runLinux64 = false, runOsx64 = false, runLinuxARM64 = false;
           while (true) {
             core.info(`------------- Waiting for runners to be configured --------------`)
             await sleep(10000);
-            var runnersResp = await github.actions.listSelfHostedRunnersForRepo({
-              owner: 'TingluoHuangOrg',
-              repo: 'runner',
-              per_page: '100'
-            });
-
+            var runnersResp = await github.actions.listSelfHostedRunnersForRepo({owner: 'TingluoHuangOrg', repo: 'runner', per_page: '100'});
             for (var i = 0; i < runnersResp.data.total_count; i++) {
               core.debug(JSON.stringify(runnersResp.data.runners[i]))
               var labels = runnersResp.data.runners[i].labels;
@@ -136,6 +148,8 @@ jobs:
             if (runWin64 && runLinux64 && runOsx64 && runLinuxARM64) {
               core.info(`--------------------- ALL runner are running jobs --------------------------`)
               break;
+            } else {
+              core.info(`---------- Windows running: ${runWin64} -- Linux running: ${runLinux64} -- macOS running: ${runOsx64} -- Linux ARM64 running: ${runLinuxARM64} -----------`)
             }
           }
         # The GitHub token used to create an authenticated client
